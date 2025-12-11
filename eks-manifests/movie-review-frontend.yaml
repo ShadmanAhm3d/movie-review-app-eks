@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: movie-review-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: movie-review-frontend
+  template:
+    metadata:
+      labels:
+        app: movie-review-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: 715860912025.dkr.ecr.ap-south-1.amazonaws.com/movie-frontend:latest ##in ecr it is names as movie-frontend
+          ports:
+            - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: movie-review-frontend
+spec:
+  type: LoadBalancer
+  selector:
+    app: movie-review-frontend
+  ports:
+    - port: 80
+      targetPort: 80
+

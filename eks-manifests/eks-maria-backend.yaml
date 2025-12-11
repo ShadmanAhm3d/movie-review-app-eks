@@ -1,0 +1,137 @@
+# ==========================
+# Persistent Volume Claim for MariaDB (EBS CSI gp3)
+# ==========================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pvc
+spec:
+  storageClassName: gp3-immediate
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+# ==========================
+# MariaDB Deployment
+# ==========================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: db
+spec:
+  selector:
+    matchLabels:
+      app: db
+  template:
+    metadata:
+      labels:
+        app: db
+    spec:
+      securityContext:
+        fsGroup: 999
+      containers:
+        - name: mariadb
+          image: mariadb:10.11
+          ports:
+            - containerPort: 3306
+          env:
+            - name: MARIADB_ROOT_PASSWORD
+              value: rootpassword
+            - name: MARIADB_DATABASE
+              value: movie_review
+            - name: MARIADB_USER
+              value: movieuser
+            - name: MARIADB_PASSWORD
+              value: strongpassword
+          volumeMounts:
+            - name: mysql-storage
+              mountPath: /var/lib/mysql
+          args:
+            - "--character-set-server=utf8mb4"
+            - "--collation-server=utf8mb4_unicode_ci"
+      volumes:
+        - name: mysql-storage
+          persistentVolumeClaim:
+            claimName: mysql-pvc
+---
+# ==========================
+# Database Service (DB_HOST=db)
+# ==========================
+apiVersion: v1
+kind: Service
+metadata:
+  name: db
+spec:
+  selector:
+    app: db
+  ports:
+    - port: 3306
+      targetPort: 3306
+  type: ClusterIP
+---
+# ==========================
+# Backend Deployment
+# ==========================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: movie-review-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: movie-review-backend
+  template:
+    metadata:
+      labels:
+        app: movie-review-backend
+    spec:
+      initContainers:
+        - name: wait-for-db
+          image: mariadb:10.11
+          command:
+            - sh
+            - -c
+            - |
+              until mysqladmin ping -h db -u"${DB_USER}" -p"${DB_PASSWORD}" --silent; do
+                echo "waiting for db"; sleep 3;
+              done
+          env:
+            - name: DB_USER
+              value: "movieuser"
+            - name: DB_PASSWORD
+              value: "strongpassword"
+
+      containers:
+        - name: backend
+          image: 715860912025.dkr.ecr.ap-south-1.amazonaws.com/movie-backend:latest ##in ecr it is named as movie-backend
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5001
+          env:
+            - name: DB_HOST
+              value: "db"
+            - name: DB_USER
+              value: "movieuser"
+            - name: DB_PASSWORD
+              value: "strongpassword"
+            - name: DB_NAME
+              value: "movie_review"
+---
+# ==========================
+# Backend Service
+# ==========================
+apiVersion: v1
+kind: Service
+metadata:
+  name: movie-review-backend
+spec:
+  type: LoadBalancer
+  selector:
+    app: movie-review-backend
+  ports:
+    - port: 5001
+      targetPort: 5001
+

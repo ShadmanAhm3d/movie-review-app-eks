@@ -1,0 +1,9 @@
+
+docker run -d \
+  --name movie-review-db \
+  -e MYSQL_ROOT_PASSWORD=rootpassword \
+  -e MYSQL_DATABASE=movie_review \
+  -e MYSQL_USER=movieuser \
+  -e MYSQL_PASSWORD=strongpassword \
+  -p 3306:3306 mariadb:10.11
+

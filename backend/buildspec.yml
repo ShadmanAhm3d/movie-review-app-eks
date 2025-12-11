@@ -1,0 +1,15 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - echo Installing dependencies
+      - pip3 install -r requirements.txt -t .
+  build:
+    commands:
+      - echo Build phase complete
+
+artifacts:
+  files:
+    - '**/*'
+

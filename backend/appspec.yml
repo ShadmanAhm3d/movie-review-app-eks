@@ -1,0 +1,15 @@
+version: 0.0
+os: linux
+files:
+  - source: /
+    destination: /home/ec2-user/flaskapp
+hooks:
+  ApplicationStop:
+    - location: scripts/stop_flask.sh
+      timeout: 30
+      runas: ec2-user
+  ApplicationStart:
+    - location: scripts/start_flask.sh
+      timeout: 60
+      runas: ec2-user
+

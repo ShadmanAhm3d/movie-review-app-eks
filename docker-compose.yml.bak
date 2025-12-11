@@ -1,0 +1,40 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: movie-review-backend
+    ports:
+      - "5001:5001"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SQLALCHEMY_DATABASE_URI: "mysql+pymysql://movieuser:strongpassword@db/movie_review"
+    volumes:
+      - ./backend:/app/backend
+      - ./frontend:/app/frontend
+    restart: always
+
+  db:
+    image: mariadb:10.11
+    container_name: movie-review-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: movie_review
+      MYSQL_USER: movieuser
+      MYSQL_PASSWORD: strongpassword
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  db_data:
+
